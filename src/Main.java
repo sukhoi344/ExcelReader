@@ -7,11 +7,11 @@ public class Main {
 
 	public static void main (String[] args) throws IOException  {
 		
-		File file = new File("/Users/chauthai/Documents/android/MacateReader/test.html");
+		File file = new File("/home/chau/Documents/samples/test.html");
 		file.createNewFile();
 		FileWriter writer = new FileWriter(file);
 		
-		XLSReader xlsReader = new XLSReader("/Users/chauthai/Downloads/Book1.xls");
+		XLSReader xlsReader = new XLSReader("/home/chau/Documents/samples/Book1-1.xls");
 		List<String> pages = xlsReader.getHTMLPages();
 		
 		writer.write(pages.get(0));

@@ -7,9 +7,7 @@ import java.util.List;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 
 /**
- * 
  * @author chau.thai
- *
  */
 public abstract class MSOfficeReader {
 	

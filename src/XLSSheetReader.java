@@ -4,6 +4,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -13,6 +15,8 @@ import org.apache.poi.ss.util.CellRangeAddress;
  * @author chau.thai
  */
 public class XLSSheetReader {
+	
+	private static final float WIDTH_RATIO = 1.0f;
 	
 	private HSSFSheet sheet;
 	private StringBuilder sb;
@@ -51,7 +55,7 @@ public class XLSSheetReader {
 		// Setup column width
 		sb.append("<col width=\"10\">");
 		for(int i = 0; i <= lastColIndex; i++)
-			sb.append("<col width=\"" + sheet.getColumnWidth(i) + "\">");
+			sb.append("<col width=\"" + (sheet.getColumnWidth(i) * WIDTH_RATIO) + "\">");
 		
 		// Add header row
 		addHeaderRow();
@@ -63,19 +67,88 @@ public class XLSSheetReader {
 	}
 	
 	private void addRows() {
+
+		int rowCount = 1;
+
+		// Iterate through rows
 		Iterator<Row> rowIter = sheet.rowIterator();
-		
+
 		while(rowIter.hasNext()) {
-			Row row = rowIter.next();
+			HSSFRow row = (HSSFRow) rowIter.next();
 			Iterator<Cell> cellIter = row.cellIterator();
+
+			// Add row index
+			sb.append("<tr><td class = \"header\">  " + (rowCount) + "  </td>");
 			
+			int lastColIndex = -1;	// last column index of the last cell
+
+			// Iterate through cells
 			while(cellIter.hasNext()) {
 				Cell cell = cellIter.next();
+				String cellContent = cell.toString();
+				
+				int colIndex = cell.getColumnIndex();
+				int blankCellsNum = colIndex - lastColIndex - 1;
+				
+				// Check for merged cells
+				List<Span> colSpans = spanColsMap.get(cell.getRowIndex());
+				List<Span> rowSpans = spanRowsMap.get(cell.getColumnIndex());
+				
+				int colSpan = 0;
+				int rowSpan = 0;
+				
+				// Horizontally
+				if(colSpans != null) {
+					for(Span span : colSpans) {
+						if(span.firstIndex == lastColIndex) {
+							colSpan = span.spanRange;
+							blankCellsNum -= colSpan - 1;
+							int spanCount = colSpan - 1;
+							
+							for(int i = 0; i < spanCount; i++) {
+								if(cellIter.hasNext())
+									cellIter.next();
+							}
+							
+							break;	// Got the desired blank cell numbers, stop the loop
+						}
+					}
+				}
+//				
+//				// Vertically
+//				if(rowSpans != null) {
+//					for(Span span : rowSpans) {
+//						if(span.firstIndex == cell.getRowIndex()) {
+//							rowSpan = span.spanRange;
+//							break;
+//						}
+//					}
+//				}
+				
+				addBlankCells(blankCellsNum);
+				
+				sb.append("<td " + ((colSpan > 0) ? "colspan=\"" + colSpan + "\"" : "") 
+							+ ((rowSpan > 0) ? "rowspan=\"" + rowSpan + "\"" : "")
+							+ ">"
+							+ cellContent + "</td>");
+				
+//				System.out.println("(" + rowCount + ", " + colIndex
+//						+ "), cell content: " + cell.toString() + 
+//						", lastColIndex: " + lastColIndex + 
+//						", blankCelNums: " + blankCellsNum);
+				
+				lastColIndex = colIndex;
 			}
 			
+			// Add blank cells to the end of the last cell
+			addBlankCells(this.lastColIndex - lastColIndex);
+			
+			// End row
+			sb.append("</tr>");
+			rowCount++;
 		}
 	}
-
+	
 	private void addHeaderRow() {
 		StringBuilder headerBuilder = new StringBuilder();
 		
@@ -162,6 +235,12 @@ public class XLSSheetReader {
 		}
 		
 		return lastColIndex - 1;
+	}
+	
+	/** Add blank cells into the row */
+	private void addBlankCells(int n) {
+		for(int i = 0; i < n; i++)
+			sb.append("<td></td>");
 	}
 	
 	/**
