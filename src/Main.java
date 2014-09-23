@@ -13,7 +13,7 @@ public class Main {
 		file.createNewFile();
 		FileWriter writer = new FileWriter(file);
 		
-		XLSReader xlsReader = new XLSReader("/Users/chauthai/Documents/android/MacateReader/s.xls");
+		XLSReader xlsReader = new XLSReader("/Users/chauthai/Documents/android/MacateReader/Book1-1.xls");
 		List<String> pages = xlsReader.getHTMLPages();
 		
 		writer.write(pages.get(0));

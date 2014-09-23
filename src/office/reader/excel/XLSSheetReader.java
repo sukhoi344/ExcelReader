@@ -76,15 +76,12 @@ public class XLSSheetReader {
 	}
 	
 	private void addRows() {
-
 		int rowCount = 1;
 
 		// Iterate through rows
 		Iterator<Row> rowIter = sheet.rowIterator();
 
 		while(rowIter.hasNext()) {
-			boolean decrementBlankNum = false;
-			
 			HSSFRow row = (HSSFRow) rowIter.next();
 			Iterator<Cell> cellIter = row.cellIterator();
 			
@@ -99,6 +96,8 @@ public class XLSSheetReader {
 
 			// Iterate through cells
 			while(cellIter.hasNext()) {
+				boolean addCell = true;
+				
 				Cell cell = cellIter.next();
 				String cellContent = cell.toString(); 
 				
@@ -108,12 +107,6 @@ public class XLSSheetReader {
 				int colIndex = cell.getColumnIndex();
 				int blankCellsNum = colIndex - lastColIndex - 1;	// Number of blank cells to be added before the current cell
 				lastColIndex = colIndex;
-				
-				// Check for special case, which decrements blank cells by 1
-				if(decrementBlankNum) {
-					blankCellsNum--;
-					decrementBlankNum = false;
-				}
 				
 				// Add blank cells before the current cell
 				addBlankCells(blankCellsNum);
@@ -130,7 +123,6 @@ public class XLSSheetReader {
 					for(Span span : colSpans) {
 						if(span.firstIndex == colIndex) {
 							colSpan = span.spanRange;
-							//blankCellsNum -= colSpan ;
 							int spanCount = colSpan - 1;
 							
 							// Skip adding cells because of the merged cell
@@ -154,15 +146,16 @@ public class XLSSheetReader {
 							break;
 						}
 						
+						// The cells are already merged from the previous cell, skip all the merged cells
 						if(cell.getRowIndex() > span.firstIndex && cell.getRowIndex() <= span.lastIndex) {
-							colSpan = 0;
-							decrementBlankNum = true;
+							addCell = false;
 							break;
 						}
 					}
 				}
 				
-				sb.append("<td " + style 
+				if(addCell)
+					sb.append("<td " + style 
 							+ ((colSpan > 0) ? "colspan=\"" + colSpan + "\"" : "") 
 							+ ((rowSpan > 0) ? "rowspan=\"" + rowSpan + "\"" : "")
 							+ ">"
@@ -178,22 +171,44 @@ public class XLSSheetReader {
 		}
 	}
 
+	/** Generate HTML style for the current cell */
 	private StringBuilder getStyleString(Cell cell) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("style=\"");
-		
-		String cellContent = cell.toString();
+		StringBuilder sb = new StringBuilder().append("style=\"");
 		CellStyle cellStyle = cell.getCellStyle();
 		
 		try {
+			
+			// Add border style
+			addBorderStyle(sb, cellStyle);
+			
+			// Add font style
+			addFontStyle(sb, cellStyle);
+			
+			// Add background color
+			addBackgroundColorStyle(sb, cellStyle);
 
-			// Get background color
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			sb.append("\"");
+		}
+		
+		return sb;
+	}
+
+	private void addBackgroundColorStyle(StringBuilder sb, CellStyle cellStyle) {
+		try {
 			Short fillBackgroundIndex = cellStyle.getFillBackgroundColor();
 			String colorHex = ColorUtil.getColorString(workBook, fillBackgroundIndex);
 			if(colorHex.equals("#000000"))
 				colorHex = "#FFFFFF";
 			
-			// Get font style
+			sb.append("background:" + colorHex + ";");
+		} catch (Exception e) {}
+	}
+
+	private void addFontStyle(StringBuilder sb, CellStyle cellStyle) {
+		try {
 			HSSFFont font = workBook.getFontAt(cellStyle.getFontIndex());
 
 			short fontColorIndex = font.getColor();
@@ -201,9 +216,21 @@ public class XLSSheetReader {
 			boolean italic = font.getItalic();
 			short heightInPoints = font.getFontHeightInPoints();
 			
-			String fontColorHex = ColorUtil.getColorString(workBook, fontColorIndex);
+			if(italic)	
+				sb.append("font-style:italic;");
+			sb.append("font-weight:" + fontBoldWeight + ";");
+			sb.append("font-size:" + heightInPoints + "0%;");
 			
-			// Get border style
+			// Get font color
+			try {
+				String fontColorHex = ColorUtil.getColorString(workBook, fontColorIndex);
+				sb.append("color:" + fontColorHex + ";");
+			} catch (Exception e) {}
+		} catch (Exception e) {}
+	}
+
+	private void addBorderStyle(StringBuilder sb, CellStyle cellStyle) {
+		try {
 			String borderBottomStyle = getBorderStyle(cellStyle.getBorderBottom());
 			String borderTopStyle = getBorderStyle(cellStyle.getBorderTop());
 			String borderLeftStyle = getBorderStyle(cellStyle.getBorderLeft());
@@ -213,8 +240,7 @@ public class XLSSheetReader {
 			String borderTopColor = ColorUtil.getColorString(workBook, cellStyle.getTopBorderColor());
 			String borderLeftColor = ColorUtil.getColorString(workBook, cellStyle.getLeftBorderColor());
 			String borderRightColor = ColorUtil.getColorString(workBook, cellStyle.getRightBorderColor());
-			
-			// Add styles
+
 			if(!borderLeftStyle.isEmpty())
 				sb.append("border-left:" + borderLeftStyle + " " + borderLeftColor + ";");
 			if(!borderRightStyle.isEmpty())
@@ -223,19 +249,7 @@ public class XLSSheetReader {
 				sb.append("border-top:" + borderTopStyle + " " + borderTopColor + ";");
 			if(!borderBottomStyle.isEmpty())
 				sb.append("border-bottom:" + borderBottomStyle + " " + borderBottomColor + ";");
-			
-			if(italic)	
-				sb.append("font-style:italic;");
-			sb.append("font-weight:" + fontBoldWeight + ";");
-			sb.append("font-size:" + heightInPoints + "0%;");
-			sb.append("color:" + fontColorHex + ";");
-			sb.append("background:" + colorHex + ";");
-
-		} catch (Exception e) {
-			return new StringBuilder("");
-		}
-		
-		return sb.append("\"");
+		} catch (Exception e) {}
 	}
 	
 	private void addHeaderRow() {
@@ -340,7 +354,7 @@ public class XLSSheetReader {
 		case CellStyle.BORDER_MEDIUM:
 			return "solid 2px";
 		case CellStyle.BORDER_THICK:
-			return "solid";
+			return "solid 3px";
 		case CellStyle.BORDER_DASH_DOT:
 		case CellStyle.BORDER_DASH_DOT_DOT:
 		case CellStyle.BORDER_MEDIUM_DASH_DOT:

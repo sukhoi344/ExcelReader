@@ -14,6 +14,7 @@ public abstract class MSOfficeReader {
 	
 	public static final String HTML_START = "<!DOCTYPE html><html>";
 	public static final String HTML_END = "</html>";
+	public static final String NEW_LINE = "<br />";
 	
 	private InputStream is;
 	

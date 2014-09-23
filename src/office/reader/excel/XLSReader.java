@@ -13,7 +13,6 @@ import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 
 
 public class XLSReader extends MSOfficeReader {
-
 	
 	private HSSFWorkbook workBook;
 	private int totalSheets;
@@ -38,7 +37,6 @@ public class XLSReader extends MSOfficeReader {
 
 	@Override
 	public List<String> getHTMLPages() {
-		
 		List<String> listHTML = new ArrayList<String>();
 		
 		for(int index = 0; index < totalSheets; index++) {
