@@ -35,7 +35,6 @@ public class XLSSheetReader {
 	/** Row span means cell span vertically. ColIndex -> Span[ ] */
 	private Map<Integer, List<Span>> spanRowsMap;
 	
-	private int lastRowIndex = 0;
 	private int lastColIndex = 0;
 	
 	public XLSSheetReader(HSSFWorkbook workBook, HSSFSheet sheet) {
@@ -47,7 +46,6 @@ public class XLSSheetReader {
 		spanRowsMap = new HashMap<>(); 
 		
 		lastColIndex = getLastColIndex();
-		lastRowIndex = sheet.getLastRowNum();
 	}
 	
 	public String getHTML() {
